@@ -1,0 +1,36 @@
+{
+  "cpu": "AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",
+  "onnx_size_mb": 4.737052,
+  "max_logit_diff": 1.52587890625e-05,
+  "identical_predictions": true,
+  "results": [
+    {
+      "runtime": "PyTorch",
+      "batch": 1,
+      "median_ms": 2.822149999701651,
+      "p95_ms": 3.2742350027547222,
+      "wafers_per_s": 354.3397764490608
+    },
+    {
+      "runtime": "ONNX Runtime",
+      "batch": 1,
+      "median_ms": 1.2341999972704798,
+      "p95_ms": 1.4381299984961515,
+      "wafers_per_s": 810.241453744588
+    },
+    {
+      "runtime": "PyTorch",
+      "batch": 64,
+      "median_ms": 118.18764999770792,
+      "p95_ms": 135.24083999727733,
+      "wafers_per_s": 541.511740027331
+    },
+    {
+      "runtime": "ONNX Runtime",
+      "batch": 64,
+      "median_ms": 57.84950000088429,
+      "p95_ms": 77.30573999797342,
+      "wafers_per_s": 1106.3189828610737
+    }
+  ]
+}
