@@ -3,9 +3,9 @@
 A compact multi-label CNN that detects 8 defect types on semiconductor wafer maps,
 including wafers where several defects overlap. The focus is on what matters in
 production: missed defects vs. false alarms, behavior on defect combinations never
-seen in training, and visual explanations of each decision.
+seen in training, visual explanations of each decision, and CPU-only deployment.
 
-**Status:** analysis complete; ONNX export and web demo in progress.
+[Training notebook](notebooks/train_colab.ipynb)
 
 ![Grad-CAM on mixed-type wafers](reports/gradcam_mixed.png)
 
@@ -17,7 +17,8 @@ seen in training, and visual explanations of each decision.
 |---|---|
 | Macro-F1 over 8 defect types | 0.991 |
 | Exact match (all 8 labels correct) | 98.4% |
-| Model size | 1.18M parameters |
+| Model size | 1.18M parameters, 4.7 MB (ONNX) |
+| CPU inference | 1.2 ms per wafer |
 | Training time | ~5 min on a T4 GPU |
 
 | Defect | Wafers | Precision | Recall | F1 | Missed | False alarms |
@@ -73,6 +74,35 @@ local clusters both hide real scratches (missed, p < 0.1) and trigger false ones
 
 ![Grad-CAM on errors](reports/gradcam_errors.png)
 
+## Deployment
+
+The model is exported to a single 4.7 MB ONNX file and runs without PyTorch.
+Predictions are identical to PyTorch on 512 test wafers (max logit difference 1.5e-5).
+
+| Runtime | Batch | Median latency | Throughput |
+|---|---|---|---|
+| PyTorch | 1 | 2.8 ms | 354 wafers/s |
+| ONNX Runtime | 1 | 1.2 ms | 810 wafers/s |
+| PyTorch | 64 | 118 ms | 542 wafers/s |
+| ONNX Runtime | 64 | 58 ms | 1,106 wafers/s |
+
+Measured on a TODO_CPU_MODEL desktop CPU, no GPU. This is far below the time a
+tester needs to measure one wafer, so the model can run inline on an industrial PC.
+
+## Demo
+
+A Gradio app shows 190 test wafers (5 per combination, randomly chosen, errors
+included). For each wafer it displays the prediction, the ground truth, a Grad-CAM
+heatmap per defect, and a switch between the balanced and high-sensitivity operating
+modes.
+
+Run it locally:
+
+```bash
+pip install gradio
+python demo/app.py
+```
+
 ## Limitations
 
 - Single training run per model; differences of a few wafers are within noise.
@@ -103,15 +133,18 @@ src/
   tune_thresholds.py   per-defect thresholds and trade-off curves
   compare.py           multi-label vs. multi-class comparison
   gradcam.py           Grad-CAM visualizations
-notebooks/
-  train_colab.ipynb    training on Google Colab
+  export_onnx.py       ONNX export and CPU latency benchmark
+  build_demo.py        assembles the demo bundle
+demo/                  Gradio app and its assets
+models/                exported ONNX model
+notebooks/             Colab training notebook
 reports/               figures and metrics
 ```
 
 ## Reproduce
 
 ```bash
-pip install numpy matplotlib scikit-learn torch torchvision
+pip install -r requirements.txt
 
 # Download Wafer_Map_Datasets.npz into data/ from
 # https://www.kaggle.com/datasets/co1d7era/mixedtype-wafer-defect-datasets
@@ -121,7 +154,11 @@ python src/train.py --out runs/exp01 --epochs 20
 python src/evaluate.py
 python src/tune_thresholds.py
 python src/gradcam.py
+python src/export_onnx.py
 ```
+
+`requirements.txt` pins the CPU build of PyTorch. For GPU training use the Colab
+notebook, where PyTorch is preinstalled.
 
 ## Dataset
 
